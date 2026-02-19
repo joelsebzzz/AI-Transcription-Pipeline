@@ -29,4 +29,9 @@ pydub==0.25.1                  # Audio format conversion (.mp3 .m4a → .wav)
 # ── Utilities ────────────────────────────────────────────────
 numpy==1.26.4                  # Array operations (already installed by torch/whisper)
 
-flask
+# ── Web Server ───────────────────────────────────────────────
+flask==3.0.3                   # Web UI server
+
+torchaudio==2.3.0               # Required by SeamlessM4T for audio loading
+
+psutil>=5.9.0                  # RAM check before loading heavy models
