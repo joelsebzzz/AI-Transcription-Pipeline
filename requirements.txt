@@ -1,0 +1,32 @@
+# ============================================================
+# requirements.txt
+# Multilingual Speech-to-Summary Pipeline
+# ============================================================
+# Install all: pip install -r requirements.txt
+#
+# Note on hardware:
+#   All versions pinned to avoid breaking changes.
+#   These versions run on CPU without CUDA.
+# ============================================================
+
+# ── Speech Recognition ──────────────────────────────────────
+openai-whisper==20231117       # Whisper ASR — installs torch automatically
+
+# ── Summarization ───────────────────────────────────────────
+transformers==4.40.0           # Hugging Face transformers (T5, BART, DistilBART)
+torch==2.3.0                   # PyTorch CPU-only (already installed by whisper)
+sentencepiece==0.2.0           # Required by T5 tokenizer
+
+# ── Audio Handling ───────────────────────────────────────────
+sounddevice==0.4.6             # Live mic recording
+soundfile==0.12.1              # Read/write audio files (used in segment splitting)
+pydub==0.25.1                  # Audio format conversion (.mp3 .m4a → .wav)
+# Note: pydub requires ffmpeg. Install separately:
+#   Windows : https://ffmpeg.org/download.html
+#   macOS   : brew install ffmpeg
+#   Linux   : sudo apt install ffmpeg
+
+# ── Utilities ────────────────────────────────────────────────
+numpy==1.26.4                  # Array operations (already installed by torch/whisper)
+
+flask

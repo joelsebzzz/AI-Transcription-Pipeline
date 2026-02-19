@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VoxScript — Multilingual Speech to Summary</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0a0c0f;
+      --surface:    #111418;
+      --surface2:   #181d24;
+      --border:     #1f2733;
+      --border2:    #2a3444;
+      --accent:     #00d4aa;
+      --accent2:    #0099ff;
+      --accent-dim: #00d4aa22;
+      --warn:       #ff6b35;
+      --warn-dim:   #ff6b3520;
+      --text:       #e8edf5;
+      --text-dim:   #6b7a93;
+      --text-mid:   #9aabc2;
+      --mono:       'Space Mono', monospace;
+      --sans:       'DM Sans', sans-serif;
+      --radius:     10px;
+      --radius-lg:  16px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app-wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 940px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 48px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .logo-name {
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+
+    .logo-tag {
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    .header-badges {
+      display: flex;
+      gap: 8px;
+    }
+
+    .badge {
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border2);
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+    }
+    .badge.active { border-color: var(--accent); color: var(--accent); }
+
+    
+    .section-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    
+    .mode-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 2px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 4px;
+      margin-bottom: 32px;
+    }
+
+    .mode-btn {
+      padding: 14px 20px;
+      border-radius: calc(var(--radius-lg) - 4px);
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .mode-btn .icon { font-size: 18px; }
+
+    .mode-btn .mode-info {
+      text-align: left;
+    }
+    .mode-btn .mode-name { display: block; font-weight: 600; color: inherit; }
+    .mode-btn .mode-desc { display: block; font-size: 11px; opacity: 0.7; margin-top: 1px; }
+
+    .mode-btn.active {
+      background: var(--surface2);
+      color: var(--text);
+      box-shadow: 0 0 0 1px var(--border2);
+    }
+
+    .mode-btn.active .mode-name { color: var(--accent); }
+
+    
+    .controls-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+      font-family: var(--mono);
+      letter-spacing: 0.05em;
+    }
+
+    select, .control-select {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      padding: 10px 14px;
+      font-family: var(--sans);
+      font-size: 13px;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7a93' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      transition: border-color 0.2s;
+    }
+    select:focus { outline: none; border-color: var(--accent); }
+
+    
+    #webspeech-panel, #whisper-panel, #seamless-panel { display: none; }
+    #webspeech-panel.active, #whisper-panel.active, #seamless-panel.active { display: block; }
+
+    .record-zone {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    /* Animated ring when recording */
+    .record-zone::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: var(--radius-lg);
+      background: conic-gradient(var(--accent), transparent, var(--accent));
+      opacity: 0;
+      transition: opacity 0.4s;
+      animation: spin 2s linear infinite;
+    }
+    .record-zone.recording::before { opacity: 0.6; }
+
+    .record-zone::after {
+      content: '';
+      position: absolute;
+      inset: 1px;
+      border-radius: calc(var(--radius-lg) - 1px);
+      background: var(--surface);
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .record-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .record-btn {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      border: 2px solid var(--border2);
+      background: var(--surface2);
+      color: var(--text-dim);
+      font-size: 28px;
+      cursor: pointer;
+      transition: all 0.25s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+
+    .record-btn:hover { border-color: var(--accent); color: var(--accent); transform: scale(1.05); }
+    .record-btn.recording {
+      background: var(--warn-dim);
+      border-color: var(--warn);
+      color: var(--warn);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+
+    .record-status {
+      font-size: 13px;
+      color: var(--text-dim);
+      min-height: 20px;
+    }
+    .record-status.active { color: var(--warn); }
+
+    /* Waveform bars */
+    .waveform {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      height: 32px;
+      margin: 12px auto;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .waveform.active { opacity: 1; }
+
+    .wave-bar {
+      width: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+      min-height: 4px;
+      animation: wave 1s ease-in-out infinite;
+    }
+    .wave-bar:nth-child(2) { animation-delay: .1s; }
+    .wave-bar:nth-child(3) { animation-delay: .2s; }
+    .wave-bar:nth-child(4) { animation-delay: .3s; }
+    .wave-bar:nth-child(5) { animation-delay: .15s; }
+    .wave-bar:nth-child(6) { animation-delay: .05s; }
+    .wave-bar:nth-child(7) { animation-delay: .25s; }
+
+    @keyframes wave {
+      0%, 100% { height: 4px; }
+      50% { height: 28px; }
+    }
+
+    
+    .upload-zone {
+      background: var(--surface);
+      border: 1px dashed var(--border2);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 16px;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .upload-icon { font-size: 36px; margin-bottom: 12px; }
+    .upload-text { font-size: 14px; color: var(--text-mid); }
+    .upload-text strong { color: var(--accent); }
+    .upload-sub { font-size: 11px; color: var(--text-dim); margin-top: 4px; font-family: var(--mono); }
+    #file-input { display: none; }
+
+    .whisper-record-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .btn {
+      padding: 11px 20px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border2);
+      background: var(--surface2);
+      color: var(--text);
+      cursor: pointer;
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #0a0c0f;
+      font-weight: 600;
+    }
+    .btn-primary:hover { background: #00efc0; border-color: #00efc0; color: #0a0c0f; }
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .btn-primary:disabled:hover { background: var(--accent); border-color: var(--accent); color: #0a0c0f; }
+
+    .btn-danger.recording {
+      background: var(--warn-dim);
+      border-color: var(--warn);
+      color: var(--warn);
+    }
+
+    .file-info {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      padding: 8px 12px;
+      background: var(--surface2);
+      border-radius: var(--radius);
+      display: none;
+    }
+    .file-info.visible { display: block; }
+
+    
+    .transcript-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin-top: 24px;
+    }
+
+    .transcript-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .transcript-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .lang-detected {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      display: none;
+    }
+    .lang-detected.visible { display: block; }
+
+    #transcript-text {
+      width: 100%;
+      min-height: 140px;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.7;
+      padding: 18px;
+      resize: vertical;
+      outline: none;
+    }
+    #transcript-text::placeholder { color: var(--text-dim); font-style: italic; }
+
+    .transcript-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 18px;
+      border-top: 1px solid var(--border);
+    }
+
+    .word-count {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    
+    .summarize-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .summarize-row .btn-primary {
+      padding: 13px 28px;
+      font-size: 14px;
+    }
+
+    .model-inline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .model-inline select {
+      width: auto;
+      padding: 8px 30px 8px 10px;
+      font-size: 12px;
+    }
+
+    
+    .output-panel {
+      margin-top: 36px;
+      display: none;
+    }
+    .output-panel.visible { display: block; }
+
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .summary-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface2);
+    }
+
+    .summary-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .summary-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .summary-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-mid);
+    }
+
+    .summary-meta {
+      display: flex;
+      gap: 16px;
+    }
+
+    .meta-item {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+    .meta-item span { color: var(--accent); }
+
+    .summary-body {
+      padding: 24px;
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--text);
+      letter-spacing: 0.01em;
+    }
+
+    .summary-body.placeholder {
+      color: var(--text-dim);
+      font-style: italic;
+    }
+
+    .chunk-details {
+      border-top: 1px solid var(--border);
+      padding: 0;
+    }
+
+    .chunk-toggle {
+      padding: 12px 20px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+    }
+    .chunk-toggle:hover { color: var(--text); }
+
+    .chunk-list {
+      display: none;
+      padding: 0 20px 20px;
+      gap: 10px;
+      flex-direction: column;
+    }
+    .chunk-list.open { display: flex; }
+
+    .chunk-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--text-mid);
+      line-height: 1.6;
+    }
+
+    .chunk-num {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-bottom: 5px;
+    }
+
+    
+    .copy-btn {
+      background: none;
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      padding: 5px 12px;
+      color: var(--text-dim);
+      font-size: 12px;
+      cursor: pointer;
+      font-family: var(--mono);
+      transition: all 0.2s;
+    }
+    .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .copy-btn.copied { color: var(--accent); border-color: var(--accent); }
+
+    
+    .loader {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+    }
+    .loader.active { display: flex; }
+
+    .loader-dots {
+      display: flex;
+      gap: 4px;
+    }
+    .loader-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: dot-pulse 1.2s ease-in-out infinite;
+    }
+    .loader-dot:nth-child(2) { animation-delay: 0.2s; }
+    .loader-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dot-pulse { 0%,100%{opacity:0.3;transform:scale(0.8)} 50%{opacity:1;transform:scale(1)} }
+
+    
+    #toast {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 12px 20px;
+      font-size: 13px;
+      color: var(--text);
+      font-family: var(--mono);
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 100;
+      max-width: 320px;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.error { border-color: var(--warn); color: var(--warn); }
+    #toast.success { border-color: var(--accent); color: var(--accent); }
+
+    
+    .info-box {
+      background: var(--accent-dim);
+      border: 1px solid #00d4aa44;
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-size: 12.5px;
+      color: var(--text-mid);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .info-box strong { color: var(--accent); }
+
+    
+    @media (max-width: 640px) {
+      .controls-row { grid-template-columns: 1fr 1fr 1fr; }
+      .mode-btn .mode-desc { display: none; }
+      .summarize-row { flex-wrap: wrap; }
+      header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-wrap">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <span class="logo-name">VoxScript</span>
+      <span class="logo-tag">Multilingual Speech → Summary</span>
+    </div>
+    <div class="header-badges">
+      <span class="badge">Whisper-small</span>
+      <span class="badge active">Web Speech API</span>
+      <span class="badge">T5 / BART</span>
+    </div>
+  </header>
+
+  <!-- Step 1: ASR Mode -->
+  <div class="section-label">01 — Choose Recognition Method</div>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btn-webspeech" onclick="setMode('webspeech')">
+      <span class="icon">🌐</span>
+      <div class="mode-info">
+        <span class="mode-name">Web Speech API</span>
+        <span class="mode-desc">Browser-native · Best for Malayalam · Requires Chrome</span>
+      </div>
+    </button>
+    <button class="mode-btn" id="btn-whisper" onclick="setMode('whisper')">
+      <span class="icon">🤖</span>
+      <div class="mode-info">
+        <span class="mode-name">Whisper (Offline)</span>
+        <span class="mode-desc">OpenAI model · Server-side · No internet needed</span>
+      </div>
+    </button>
+    <button class="mode-btn" id="btn-seamless" onclick="setMode('seamless')">
+      <span class="icon">🔬</span>
+      <div class="mode-info">
+        <span class="mode-name">SeamlessM4T v2</span>
+        <span class="mode-desc">Meta AI · Multilingual · Best Malayalam offline</span>
+      </div>
+    </button>
+  </div>
+
+  <!-- Step 2: Language & Settings -->
+  <div class="section-label">02 — Settings</div>
+
+  <div class="controls-row">
+    <div class="control-group">
+      <label>LANGUAGE</label>
+      <select id="lang-select">
+        <option value="auto">Auto-detect</option>
+        <option value="ml">Malayalam (ml)</option>
+        <option value="en">English (en)</option>
+        <option value="hi">Hindi (hi)</option>
+        <option value="ta">Tamil (ta)</option>
+        <option value="te">Telugu (te)</option>
+        <option value="fr">French (fr)</option>
+        <option value="de">German (de)</option>
+        <option value="es">Spanish (es)</option>
+        <option value="zh">Chinese (zh)</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>SUMMARIZER MODEL</label>
+      <select id="model-select">
+        <option value="t5-small">T5-small (fast, ~1.5GB)</option>
+        <option value="distilbart">DistilBART (better, ~2GB)</option>
+        <option value="bart-large">BART-large (best, ~4GB)</option>
+      </select>
+    </div>
+    <div class="control-group" id="whisper-model-group">
+      <label>WHISPER MODEL</label>
+      <select id="whisper-model-select">
+        <option value="small">small — 2GB · recommended</option>
+        <option value="base">base — 1GB · faster, weaker</option>
+        <option value="tiny">tiny — 1GB · fastest, weakest</option>
+        <option value="medium">medium — 5GB · better ⚠ slow CPU</option>
+        <option value="large-v3">large-v3 — 10GB · best ⚠ very slow CPU</option>
+      </select>
+    </div>
+    <div class="control-group" id="seamless-model-group" style="display:none;">
+      <label>SEAMLESS MODEL</label>
+      <select id="seamless-model-select">
+        <option value="seamless-v2-large">v2-large — 10GB · best quality (recommended)</option>
+        <option value="seamless-v1-large">v1-large — 5GB · good quality</option>
+        <option value="seamless-v1-medium">v1-medium — 2.5GB · lightest</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Web Speech Panel -->
+  <div id="webspeech-panel" class="active">
+
+    <div class="info-box" id="ws-infobox">
+      <strong>💡 Web Speech API</strong><br>
+      Uses Google's servers — requires internet and Chrome. Best for Malayalam when Google is reachable.
+      <strong>If you see a network error</strong>, Google is blocked on your network —
+      it will automatically fall back to Whisper mic recording instead.
+    </div>
+    <div class="info-box" id="ws-fallback-notice" style="display:none;border-color:#ff6b3544;background:#ff6b3511;color:#ff9966;">
+      <strong>⚡ Switched to Whisper fallback</strong><br>
+      Google's servers are unreachable on your network. You are now recording with your mic and transcribing via local Whisper. Click the mic button below to record.
+    </div>
+
+    <div class="record-zone" id="record-zone">
+      <div class="record-inner">
+        <button class="record-btn" id="ws-record-btn" onclick="toggleWebSpeech()">🎙</button>
+        <div class="waveform" id="waveform">
+          <div class="wave-bar" style="height:8px"></div>
+          <div class="wave-bar" style="height:14px"></div>
+          <div class="wave-bar" style="height:20px"></div>
+          <div class="wave-bar" style="height:26px"></div>
+          <div class="wave-bar" style="height:18px"></div>
+          <div class="wave-bar" style="height:10px"></div>
+          <div class="wave-bar" style="height:16px"></div>
+        </div>
+        <div class="record-status" id="ws-status">Click microphone to start recording</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Whisper Panel -->
+  <div id="whisper-panel">
+
+    <div class="info-box">
+      <strong>🤖 Whisper (Offline Mode)</strong><br>
+      Runs locally on your machine — no internet needed after first download.
+      Malayalam accuracy with Whisper-small is lower (~60-70%). 
+      For Malayalam, the Web Speech API tab gives better results.
+      Best used for English or when offline.
+    </div>
+
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragleave="handleDragLeave(event)">
+      <div class="upload-icon">📁</div>
+      <div class="upload-text">Drop audio file here or <strong>click to browse</strong></div>
+      <div class="upload-sub">.wav · .mp3 · .m4a · .ogg · .webm · .flac</div>
+    </div>
+    <input type="file" id="file-input" accept="audio/*" onchange="handleFileSelect(event)">
+    <div class="file-info" id="file-info"></div>
+
+    <div class="whisper-record-row" style="margin-top:12px;">
+      <button class="btn btn-danger" id="whisper-mic-btn" onclick="toggleWhisperMic()">🎙 Record with Mic</button>
+      <div class="loader" id="whisper-loader">
+        <div class="loader-dots">
+          <div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>
+        </div>
+        <span id="whisper-loader-text">Transcribing...</span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="whisper-run-btn" onclick="runWhisper()" style="margin-top:4px;" disabled>
+      🤖 Run Whisper Transcription
+    </button>
+
+  </div>
+
+  <!-- SeamlessM4T Panel -->
+  <div id="seamless-panel">
+
+    <div class="info-box" style="border-color:#a78bfa44;background:#a78bfa11;">
+      <strong style="color:#a78bfa;">🔬 SeamlessM4T v2 — Meta AI</strong><br>
+      Meta's state-of-the-art multilingual model supporting 100+ languages including Malayalam, Hindi, Tamil and Telugu — no language tag needed. Significantly outperforms Whisper-small for Indic languages.<br><br>
+      <strong style="color:#ff9966;">⚠ RAM requirement:</strong> v1-large needs ~6GB free · v2-large needs ~12GB free. On low-end laptops this will not run — the server returns a clear error instead of crashing.
+    </div>
+
+    <div class="upload-zone" id="seamless-upload-zone" onclick="document.getElementById('seamless-file-input').click()" ondragover="handleSeamlessDragOver(event)" ondrop="handleSeamlessDrop(event)" ondragleave="handleSeamlessDragLeave(event)">
+      <div class="upload-icon">🔬</div>
+      <div class="upload-text">Drop audio file here or <strong>click to browse</strong></div>
+      <div class="upload-sub">.wav · .mp3 · .m4a · .ogg · .webm · .flac</div>
+    </div>
+    <input type="file" id="seamless-file-input" accept="audio/*" onchange="handleSeamlessFileSelect(event)">
+    <div class="file-info" id="seamless-file-info"></div>
+
+    <div class="whisper-record-row" style="margin-top:12px;">
+      <button class="btn btn-danger" id="seamless-mic-btn" onclick="toggleSeamlessMic()">🎙 Record with Mic</button>
+      <div class="loader" id="seamless-loader">
+        <div class="loader-dots">
+          <div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>
+        </div>
+        <span>SeamlessM4T transcribing...</span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="seamless-run-btn" onclick="runSeamless()" style="margin-top:4px;background:#a78bfa;border-color:#a78bfa;" disabled>
+      🔬 Run SeamlessM4T Transcription
+    </button>
+
+  </div>
+
+  <!-- Step 3: Transcript -->
+  <div class="section-label" style="margin-top:32px;">03 — Transcript</div>
+
+  <div class="transcript-box">
+    <div class="transcript-header">
+      <span class="transcript-title">Editable Transcript</span>
+      <span class="lang-detected" id="lang-badge">EN</span>
+    </div>
+    <textarea id="transcript-text" placeholder="Your transcript will appear here after recording. You can also type or paste text directly and summarize it..."></textarea>
+    <div class="transcript-footer">
+      <span class="word-count" id="word-count">0 words</span>
+      <button class="btn" onclick="clearTranscript()" style="padding:5px 12px;font-size:12px;">✕ Clear</button>
+    </div>
+  </div>
+
+  <!-- Step 4: Summarize -->
+  <div class="section-label" style="margin-top:28px;">04 — Summarize</div>
+
+  <div class="summarize-row">
+    <button class="btn btn-primary" id="summarize-btn" onclick="runSummarize()">
+      🧠 Generate Summary
+    </button>
+    <div class="loader" id="sum-loader">
+      <div class="loader-dots">
+        <div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>
+      </div>
+      <span>Summarizing...</span>
+    </div>
+  </div>
+
+  <!-- Output -->
+  <div class="output-panel" id="output-panel">
+
+    <div class="section-label" style="margin-top:32px;">05 — Summary Output</div>
+
+    <div class="summary-card">
+      <div class="summary-header">
+        <div class="summary-header-left">
+          <div class="summary-dot"></div>
+          <span class="summary-label">Final Summary</span>
+        </div>
+        <div class="summary-meta">
+          <span class="meta-item">Model: <span id="meta-model">—</span></span>
+          <span class="meta-item">Time: <span id="meta-time">—</span></span>
+          <span class="meta-item">Chunks: <span id="meta-chunks">—</span></span>
+        </div>
+      </div>
+      <div class="summary-body" id="summary-body"></div>
+
+      <div class="chunk-details" id="chunk-details" style="display:none;">
+        <button class="chunk-toggle" onclick="toggleChunks(this)">
+          ▶ Show per-chunk summaries
+        </button>
+        <div class="chunk-list" id="chunk-list"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="copy-btn" id="copy-btn" onclick="copySummary()">⎘ Copy Summary</button>
+      <button class="copy-btn" onclick="copyTranscript()">⎘ Copy Transcript</button>
+    </div>
+
+  </div>
+
+</div><!-- .app-wrap -->
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+let currentMode      = 'webspeech';
+let wsRecognition    = null;
+let wsRecording      = false;
+let wsRestarting     = false;
+let wsFullTranscript = '';
+
+let whisperMediaRec  = null;
+let whisperChunks    = [];
+let whisperAudioFile = null;
+let whisperRecording = false;
+
+let seamlessAudioFile = null;
+let seamlessMediaRec  = null;
+let seamlessChunks    = [];
+let seamlessRecording = false;
+
+let lastSegments     = [];
+let lastLanguage     = 'en';
+
+function setMode(mode) {
+  currentMode = mode;
+  const panels = ['webspeech', 'whisper', 'seamless'];
+  panels.forEach(p => {
+    document.getElementById(p + '-panel').classList.toggle('active', mode === p);
+    document.getElementById('btn-' + p).classList.toggle('active', mode === p);
+  });
+  document.getElementById('whisper-model-group').style.display  = mode === 'whisper'   ? 'block' : 'none';
+  document.getElementById('seamless-model-group').style.display = mode === 'seamless'  ? 'block' : 'none';
+}
+
+function getLangForWebSpeech() {
+  const val = document.getElementById('lang-select').value;
+  const map = {
+    'ml':'ml-IN', 'en':'en-US', 'hi':'hi-IN', 'ta':'ta-IN',
+    'te':'te-IN', 'fr':'fr-FR', 'de':'de-DE', 'es':'es-ES',
+    'zh':'zh-CN', 'auto':'en-US',
+  };
+  return map[val] || 'en-US';
+}
+
+function toggleWebSpeech() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('⚠ Web Speech API requires Google Chrome.', 'error');
+    return;
+  }
+  wsRecording ? stopWebSpeech() : startWebSpeech();
+}
+
+function buildRecognition() {
+  const SpeechRec   = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRec();
+  recognition.lang            = getLangForWebSpeech();
+  recognition.interimResults  = true;
+  recognition.continuous      = true;
+  recognition.maxAlternatives = 1;
+  return recognition;
+}
+
+function attachHandlers(recognition) {
+  recognition.onstart = () => {
+    wsRestarting = false;
+    document.getElementById('ws-record-btn').classList.add('recording');
+    document.getElementById('ws-record-btn').textContent = '⏹';
+    document.getElementById('record-zone').classList.add('recording');
+    document.getElementById('waveform').classList.add('active');
+    document.getElementById('ws-status').textContent = 'Listening... (click ⏹ to stop)';
+    document.getElementById('ws-status').classList.add('active');
+    setLangBadge(document.getElementById('lang-select').value.toUpperCase());
+  };
+
+  recognition.onresult = (e) => {
+    let interim = '';
+    let final   = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t + ' ';
+      else interim += t;
+    }
+    if (final) wsFullTranscript += final;
+    document.getElementById('transcript-text').value = wsFullTranscript + interim;
+    updateWordCount();
+  };
+
+  recognition.onerror = (e) => {
+    if (e.error === 'no-speech') {
+      return;
+    }
+    if (e.error === 'aborted') {
+      return;
+    }
+    const msgs = {
+      'network':             '⚠ Network error — Chrome cannot reach Google speech servers. Make sure you are on localhost:5000 and have internet.',
+      'not-allowed':         '⚠ Mic access denied. Click the 🔒 icon in the address bar and allow microphone.',
+      'audio-capture':       '⚠ No microphone found. Plug in a mic and retry.',
+      'service-not-allowed': '⚠ Web Speech API blocked. Open via http://localhost:5000 in Chrome.',
+    };
+    const msg = msgs[e.error] ?? ('Speech error: ' + e.error);
+    if (msg) showToast(msg, 'error');
+    wsRecording = false;
+    resetRecordUI();
+  };
+
+  recognition.onend = () => {
+    if (!wsRecording || wsRestarting) return;
+    wsRestarting = true;
+    setTimeout(() => {
+      if (!wsRecording) return;
+      wsRecognition = buildRecognition();
+      attachHandlers(wsRecognition);
+      try {
+        wsRecognition.start();
+      } catch(err) {
+        wsRestarting = false;
+      }
+    }, 150);
+  };
+}
+
+function startWebSpeech() {
+  wsFullTranscript = document.getElementById('transcript-text').value;
+  wsRecording      = true;
+  wsRestarting     = false;
+  wsRecognition    = buildRecognition();
+  attachHandlers(wsRecognition);
+  wsRecognition.start();
+}
+
+function stopWebSpeech() {
+  wsRecording  = false;
+  wsRestarting = false;
+  if (wsRecognition) {
+    wsRecognition.onend = null;
+    wsRecognition.stop();
+  }
+  document.getElementById('transcript-text').value = wsFullTranscript.trim();
+  updateWordCount();
+  resetRecordUI();
+  document.getElementById('ws-status').textContent = 'Recording stopped. Edit transcript if needed.';
+}
+
+function resetRecordUI() {
+  document.getElementById('ws-record-btn').classList.remove('recording');
+  document.getElementById('ws-record-btn').textContent = '🎙';
+  document.getElementById('record-zone').classList.remove('recording');
+  document.getElementById('waveform').classList.remove('active');
+  document.getElementById('ws-status').classList.remove('active');
+}
+
+function handleDragOver(e)  { e.preventDefault(); document.getElementById('upload-zone').classList.add('drag-over'); }
+function handleDragLeave(e) { document.getElementById('upload-zone').classList.remove('drag-over'); }
+function handleDrop(e) {
+  e.preventDefault();
+  handleDragLeave(e);
+  const file = e.dataTransfer.files[0];
+  if (file) setWhisperFile(file);
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) setWhisperFile(file);
+}
+function setWhisperFile(file) {
+  whisperAudioFile = file;
+  const info = document.getElementById('file-info');
+  info.textContent = `📎 ${file.name}  (${(file.size/1024/1024).toFixed(2)} MB)`;
+  info.classList.add('visible');
+  document.getElementById('whisper-run-btn').disabled = false;
+}
+
+async function toggleWhisperMic() {
+  if (whisperRecording) {
+    whisperMediaRec.stop();
+    return;
+  }
+  try {
+    const stream    = await navigator.mediaDevices.getUserMedia({ audio: true });
+    whisperChunks   = [];
+    whisperMediaRec = new MediaRecorder(stream);
+    whisperMediaRec.ondataavailable = e => whisperChunks.push(e.data);
+    whisperMediaRec.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      const blob       = new Blob(whisperChunks, { type: 'audio/webm' });
+      whisperAudioFile = new File([blob], 'recording.webm', { type: 'audio/webm' });
+      setWhisperFile(whisperAudioFile);
+      document.getElementById('whisper-mic-btn').textContent = '🎙 Record with Mic';
+      document.getElementById('whisper-mic-btn').classList.remove('recording');
+      whisperRecording = false;
+      showToast('Recording saved. Click "Run Whisper" to transcribe.', 'success');
+    };
+    whisperMediaRec.start();
+    whisperRecording = true;
+    document.getElementById('whisper-mic-btn').textContent = '⏹ Stop Recording';
+    document.getElementById('whisper-mic-btn').classList.add('recording');
+  } catch(err) {
+    showToast('Mic access denied: ' + err.message, 'error');
+  }
+}
+
+async function runWhisper() {
+  if (!whisperAudioFile) { showToast('Please select or record audio first.', 'error'); return; }
+  const loader = document.getElementById('whisper-loader');
+  const btn    = document.getElementById('whisper-run-btn');
+  loader.classList.add('active');
+  btn.disabled = true;
+  const formData = new FormData();
+  formData.append('audio', whisperAudioFile);
+  formData.append('language', document.getElementById('lang-select').value);
+  formData.append('whisper_model', document.getElementById('whisper-model-select').value);
+  try {
+    const res  = await fetch('/api/transcribe/whisper', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.error) { showToast('Whisper error: ' + data.error, 'error'); return; }
+    document.getElementById('transcript-text').value = data.transcript;
+    lastSegments = data.segments || [];
+    lastLanguage = data.language || 'en';
+    setLangBadge(data.language.toUpperCase());
+    updateWordCount();
+    showToast('✅ Transcription complete!', 'success');
+  } catch(err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      showToast('⏳ Request timed out. Model may still be loading — check terminal for "✅ SeamlessM4T loaded" then retry.', 'error');
+    } else {
+      showToast('Server error: ' + err.message, 'error');
+    }
+  } finally {
+    loader.classList.remove('active');
+    btn.disabled = false;
+  }
+}
+
+async function runSummarize() {
+  const text = document.getElementById('transcript-text').value.trim();
+  if (!text) { showToast('No transcript to summarize.', 'error'); return; }
+  if (text.split(/\s+/).length < 20) { showToast('Need at least 20 words to summarize.', 'error'); return; }
+  const loader = document.getElementById('sum-loader');
+  const btn    = document.getElementById('summarize-btn');
+  loader.classList.add('active');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/summarize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text:     text,
+        model:    document.getElementById('model-select').value,
+        language: lastLanguage,
+        segments: lastSegments,
+      }),
+    });
+    const data = await res.json();
+    if (data.error) { showToast('Summary error: ' + data.error, 'error'); return; }
+    document.getElementById('output-panel').classList.add('visible');
+    document.getElementById('summary-body').textContent = data.summary;
+    document.getElementById('summary-body').className   = 'summary-body';
+    document.getElementById('meta-model').textContent   = data.model_used;
+    document.getElementById('meta-time').textContent    = data.time_seconds + 's';
+    document.getElementById('meta-chunks').textContent  = data.num_chunks;
+    if (data.chunk_summaries && data.chunk_summaries.length > 1) {
+      const list = document.getElementById('chunk-list');
+      list.innerHTML = '';
+      data.chunk_summaries.forEach((s, i) => {
+        list.innerHTML += `<div class="chunk-item"><div class="chunk-num">CHUNK ${i+1}</div>${s}</div>`;
+      });
+      document.getElementById('chunk-details').style.display = 'block';
+    } else {
+      document.getElementById('chunk-details').style.display = 'none';
+    }
+    document.getElementById('output-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    showToast('✅ Summary ready!', 'success');
+  } catch(err) {
+    showToast('Server error: ' + err.message, 'error');
+  } finally {
+    loader.classList.remove('active');
+    btn.disabled = false;
+  }
+}
+
+function handleSeamlessDragOver(e)   { e.preventDefault(); document.getElementById('seamless-upload-zone').classList.add('drag-over'); }
+function handleSeamlessDragLeave(e)  { document.getElementById('seamless-upload-zone').classList.remove('drag-over'); }
+function handleSeamlessDrop(e) {
+  e.preventDefault();
+  handleSeamlessDragLeave(e);
+  const file = e.dataTransfer.files[0];
+  if (file) setSeamlessFile(file);
+}
+function handleSeamlessFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) setSeamlessFile(file);
+}
+function setSeamlessFile(file) {
+  seamlessAudioFile = file;
+  const info = document.getElementById('seamless-file-info');
+  info.textContent = `📎 ${file.name}  (${(file.size/1024/1024).toFixed(2)} MB)`;
+  info.classList.add('visible');
+  document.getElementById('seamless-run-btn').disabled = false;
+}
+
+async function toggleSeamlessMic() {
+  if (seamlessRecording) {
+    seamlessMediaRec.stop();
+    return;
+  }
+  try {
+    const stream    = await navigator.mediaDevices.getUserMedia({ audio: true });
+    seamlessChunks  = [];
+    seamlessMediaRec = new MediaRecorder(stream);
+    seamlessMediaRec.ondataavailable = e => seamlessChunks.push(e.data);
+    seamlessMediaRec.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      const blob       = new Blob(seamlessChunks, { type: 'audio/webm' });
+      seamlessAudioFile = new File([blob], 'recording.webm', { type: 'audio/webm' });
+      setSeamlessFile(seamlessAudioFile);
+      document.getElementById('seamless-mic-btn').textContent = '🎙 Record with Mic';
+      document.getElementById('seamless-mic-btn').classList.remove('recording');
+      seamlessRecording = false;
+      showToast('Recording saved. Click "Run SeamlessM4T" to transcribe.', 'success');
+    };
+    seamlessMediaRec.start();
+    seamlessRecording = true;
+    document.getElementById('seamless-mic-btn').textContent = '⏹ Stop Recording';
+    document.getElementById('seamless-mic-btn').classList.add('recording');
+  } catch(err) {
+    showToast('Mic access denied: ' + err.message, 'error');
+  }
+}
+
+async function runSeamless() {
+  if (!seamlessAudioFile) { showToast('Please select or record audio first.', 'error'); return; }
+  const loader = document.getElementById('seamless-loader');
+  const btn    = document.getElementById('seamless-run-btn');
+  loader.classList.add('active');
+  btn.disabled = true;
+  const formData = new FormData();
+  formData.append('audio', seamlessAudioFile);
+  formData.append('language', document.getElementById('lang-select').value);
+  formData.append('seamless_model', document.getElementById('seamless-model-select').value);
+  const controller = new AbortController();
+  const timeoutId  = setTimeout(() => controller.abort(), 600000);
+  try {
+    const res  = await fetch('/api/transcribe/seamless', { method: 'POST', body: formData, signal: controller.signal });
+    clearTimeout(timeoutId);
+    const data = await res.json();
+    if (data.error) { showToast('SeamlessM4T error: ' + data.error, 'error'); return; }
+    document.getElementById('transcript-text').value = data.transcript;
+    lastSegments = [];
+    lastLanguage = data.language || 'en';
+    setLangBadge((data.model_used || 'seamless').toUpperCase());
+    updateWordCount();
+    showToast('✅ SeamlessM4T transcription complete!', 'success');
+  } catch(err) {
+    if (err.name === 'TypeError' && err.message.includes('network')) {
+      showToast('⏳ Model may still be downloading (5GB). Check your terminal — wait for "✅ SeamlessM4T loaded" then try again.', 'error');
+    } else {
+      showToast('Server error: ' + err.message, 'error');
+    }
+  } finally {
+    loader.classList.remove('active');
+    btn.disabled = false;
+  }
+}
+
+function toggleChunks(btn) {
+  const list = document.getElementById('chunk-list');
+  list.classList.toggle('open');
+  btn.textContent = list.classList.contains('open') ? '▼ Hide per-chunk summaries' : '▶ Show per-chunk summaries';
+}
+function clearTranscript() {
+  document.getElementById('transcript-text').value = '';
+  updateWordCount();
+  lastSegments = [];
+}
+function updateWordCount() {
+  const text  = document.getElementById('transcript-text').value.trim();
+  const count = text ? text.split(/\s+/).length : 0;
+  document.getElementById('word-count').textContent = count + ' words';
+}
+function setLangBadge(lang) {
+  const badge = document.getElementById('lang-badge');
+  badge.textContent = lang;
+  badge.classList.add('visible');
+}
+function copySummary() {
+  const text = document.getElementById('summary-body').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '⎘ Copy Summary'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyTranscript() {
+  navigator.clipboard.writeText(document.getElementById('transcript-text').value)
+    .then(() => showToast('Transcript copied!', 'success'));
+}
+function showToast(msg, type = '') {
+  const toast   = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className   = 'show ' + type;
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toast.className = '', 3500);
+}
+
+document.getElementById('transcript-text').addEventListener('input', updateWordCount);
+</script>
+</body>
+</html>
