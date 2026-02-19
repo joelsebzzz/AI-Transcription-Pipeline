@@ -34,4 +34,4 @@ flask==3.0.3                   # Web UI server
 
 torchaudio==2.3.0               # Required by SeamlessM4T for audio loading
 
-psutil>=5.9.0                  # RAM check before loading heavy models
+psutil>=5.9.0                  # RAM check before loading models
